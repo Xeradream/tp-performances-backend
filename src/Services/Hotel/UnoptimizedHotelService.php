@@ -168,9 +168,7 @@ INNER JOIN tp.wp_postmeta AS surfaceData ON posts.ID = surfaceData.post_id AND s
 INNER JOIN tp.wp_postmeta AS priceData ON posts.ID = priceData.post_id AND priceData.meta_key = 'price'
 INNER JOIN tp.wp_postmeta AS bedroomsData ON posts.ID = bedroomsData.post_id AND bedroomsData.meta_key = 'bedrooms_count'
 INNER JOIN tp.wp_postmeta AS bathroomsData ON posts.ID = bathroomsData.post_id AND bathroomsData.meta_key = 'bathrooms_count'
-INNER JOIN tp.wp_postmeta AS typeData ON posts.ID = typeData.post_id AND typeData.meta_key = 'type'
-WHERE
-    ";
+INNER JOIN tp.wp_postmeta AS typeData ON posts.ID = typeData.post_id AND typeData.meta_key = 'type'";
 
       $whereClauses = [];
 
@@ -202,29 +200,36 @@ WHERE
           $whereClauses[]='typeData.meta_value = :types';
       }
 
-      if ( count($whereClauses > 0) )
+      if ( count($whereClauses )>0 )
           $query .= " WHERE " . implode( ' AND ', $whereClauses );
 
+      $stmt = $this->getDB()->prepare( $query );
+      if ( isset( $args['surface']['min'] ) )
+          $stmt->bindParam('min', $args['surface']['min'], PDO::PARAM_INT);
+      if ( isset( $args['surface']['max'] ) )
+          $stmt->bindParam('max', $args['surface']['max'], PDO::PARAM_INT);
+      if ( isset( $args['price']['min'] ) )
+          $stmt->bindParam('min', $args['price']['min'], PDO::PARAM_INT);
+      if ( isset( $args['price']['max'] ) )
+          $stmt->bindParam('max', $args['price']['max'], PDO::PARAM_INT);
+      if ( isset( $args['rooms'] ) )
+          $stmt->bindParam('rooms', $args['bathRooms'], PDO::PARAM_INT);
+      if ( isset( $args['bathRooms'] ) )
+          $stmt->bindParam('rooms', $args['bathRooms'], PDO::PARAM_INT);
+      if ( isset( $args['types'] ) )
+          $stmt->bindParam('types', $args['types'], PDO::PARAM_STR_CHAR);
 
-
-      $filteredRooms[] = $room;
+      $stmt->execute();
+      $room =$stmt->fetchAll();
     
     // Si aucune chambre ne correspond aux critères, alors on déclenche une exception pour retirer l'hôtel des résultats finaux de la méthode list().
-    if ( count( $filteredRooms ) < 1 )
+    if ( $room == null )
       throw new FilterException( "Aucune chambre ne correspond aux critères" );
     
     
     // Trouve le prix le plus bas dans les résultats de recherche
-    $cheapestRoom = null;
-    foreach ( $filteredRooms as $room ) :
-      if ( ! isset( $cheapestRoom ) ) {
-        $cheapestRoom = $room;
-        continue;
-      }
-      
-      if ( intval( $room->getPrice() ) < intval( $cheapestRoom->getPrice() ) )
-        $cheapestRoom = $room;
-    endforeach;
+    $cheapestRoom = (new RoomEntity());
+
 
       $this->timer->endTimer("getCheapestRoom",$timerId);
     return $cheapestRoom;
