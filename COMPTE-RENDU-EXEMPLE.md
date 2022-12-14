@@ -32,50 +32,68 @@ Vous pouvez utiliser ce [GSheets](https://docs.google.com/spreadsheets/d/13Hw27U
 - **Après** 23s
 
 
-#### Amélioration de la méthode `METHOD` et donc de la méthode `METHOD` :
+#### Amélioration de la méthode getMeta et donc de la méthode getMetas:
 
-- **Avant** TEMPS
+- **Avant** 4.12s
 
 ```sql
--- REQ SQL DE BASE
+-- SELECT * FROM wp_usermeta
 ```
 
-- **Après** TEMPS
+- **Après** 166.73ms
 
 ```sql
--- NOUVELLE REQ SQL
-```
-
-
-
-#### Amélioration de la méthode `METHOD` :
-
-- **Avant** TEMPS
-
-```sql
--- REQ SQL DE BASE
-```
-
-- **Après** TEMPS
-
-```sql
--- NOUVELLE REQ SQL
+-- SELECT meta_key,meta_value FROM wp_usermeta WHERE user_id = :userid
 ```
 
 
 
-#### Amélioration de la méthode `METHOD` :
+#### Amélioration de la méthode getReviews :
 
-- **Avant** TEMPS
+- **Avant** 9.28s
 
 ```sql
--- REQ SQL DE BASE
+-- SELECT * FROM wp_posts, wp_postmeta 
+WHERE wp_posts.post_author = :hotelId 
+AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' 
+AND post_type = 'review'
 ```
 
-- **Après** TEMPS
+- **Après** 6.18s
 
 ```sql
--- NOUVELLE REQ SQL
+-- SELECT ROUND(AVG(meta_value)) AS rating, 
+COUNT(meta_value) AS count FROM wp_posts, wp_postmeta 
+WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id 
+AND meta_key = 'rating' AND post_type = 'review'
+```
+
+
+
+#### Amélioration de la méthode getCheapestRoom :
+
+- **Avant** 16.62s
+
+```sql
+-- SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room'
+```
+
+- **Après** 9.24s
+
+```sql
+-- SELECT post.ID,
+        post.post_title AS title,
+        PriceData.meta_value AS price, 
+        SurfaceData.meta_value AS surface, 
+        TypeData.meta_value AS type, 
+        BedroomsCountData.meta_value AS bedrooms, 
+        BathroomsCountData.meta_value AS bathrooms
+        FROM wp_posts AS post
+        INNER JOIN wp_postmeta AS PriceData ON post.ID = PriceData.post_id AND PriceData.meta_key = 'price'
+        INNER JOIN wp_postmeta AS SurfaceData ON post.ID = SurfaceData.post_id AND SurfaceData.meta_key = 'surface'
+        INNER JOIN wp_postmeta AS TypeData ON post.ID = TypeData.post_id AND TypeData.meta_key = 'type'
+        INNER JOIN wp_postmeta AS BedroomsCountData ON post.ID = BedroomsCountData.post_id AND BedroomsCountData.meta_key = 'bedrooms_count'
+        INNER JOIN wp_postmeta AS BathroomsCountData ON post.ID = BathroomsCountData.post_id AND BathroomsCountData.meta_key = 'bathrooms_count'"
 ```
 
 
@@ -84,7 +102,7 @@ Vous pouvez utiliser ce [GSheets](https://docs.google.com/spreadsheets/d/13Hw27U
 
 |                              | **Avant** | **Après** |
 |------------------------------|-----------|-----------|
-| Nombre d'appels de `getDB()` | NOMBRE    | NOMBRE    |
+| Nombre d'appels de `getDB()` | 1201      | NOMBRE    |
  | Temps de `METHOD`            | TEMPS     | TEMPS     |
 
 ## Question 6 : Création d'un service basé sur une seule requête SQL

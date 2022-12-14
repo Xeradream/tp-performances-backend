@@ -98,24 +98,15 @@ class UnoptimizedHotelService extends AbstractHotelService {
    * @return array{rating: int, count: int}
    * @noinspection PhpUnnecessaryLocalVariableInspection
    */
-  protected function getReviews ( HotelEntity $hotel ) : array {
+protected function getReviews ( HotelEntity $hotel ) : array {
+    $timer = Timers::getInstance();
+    $timerId = $timer->startTimer('getReviews');
     // Récupère tous les avis d'un hotel
-      $timerId=$this->timer->startTimer("getReviews","");
-    $stmt = $this->getDB()->prepare( "SELECT * FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'" );
+    $stmt = $this->getDB()->prepare( "SELECT ROUND(AVG(meta_value)) AS rating, COUNT(meta_value) AS count FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'" );
     $stmt->execute( [ 'hotelId' => $hotel->getId() ] );
-    $reviews = $stmt->fetchAll( PDO::FETCH_ASSOC );
-    
-    // Sur les lignes, ne garde que la note de l'avis
-    $reviews = array_map( function ( $review ) {
-      return intval( $review['meta_value'] );
-    }, $reviews );
-    
-    $output = [
-      'rating' => round( array_sum( $reviews ) / count( $reviews ) ),
-      'count' => count( $reviews ),
-    ];
-      $this->timer->endTimer("getReviews",$timerId);
-    return $output;
+    $reviews = $stmt->fetch( PDO::FETCH_ASSOC );
+    $timer->endTimer('getReviews', $timerId);
+    return $reviews;
   }
   
   
@@ -242,7 +233,6 @@ class UnoptimizedHotelService extends AbstractHotelService {
    * @param $longitudeFrom
    * @param $latitudeTo
    * @param $longitudeTo
-   *
    * @return float|int
    */
   protected function computeDistance ( $latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo ) : float|int {
